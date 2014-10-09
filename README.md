@@ -17,4 +17,5 @@ If GMP, NTL and quadmath are not in a standard directory, you have to indicate w
 Example:
 
 g++ -Ofast -I$HOME/sw/include IBE.cc -o IBE -L$HOME/sw/lib -lntl -lgmp -lquadmath
+
 ./IBE
