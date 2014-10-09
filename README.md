@@ -10,7 +10,6 @@ Compile the file using a C++ compiler, and linking to the GMP, NTL and quadmath 
 Example on an Unix machine with gcc:
 
 g++ -Ofast IBE.cc -o IBE -lntl -lgmp -lquadmath
-
 ./IBE
 
 
@@ -18,5 +17,4 @@ If GMP, NTL and quadmath are not in a standard directory, you have to indicate w
 Example:
 
 g++ -Ofast -I$HOME/sw/include IBE.cc -o IBE -L$HOME/sw/lib -lntl -lgmp -lquadmath
-
 ./IBE
