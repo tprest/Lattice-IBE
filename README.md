@@ -1,7 +1,11 @@
 Identity-Based Encryption over NTRU Lattices
 ===========
 
-This software is a proof-of-concept implementation of an identity-based encryption scheme over NTRU lattices, described in the paper "Efficient Identity-Based Encryption over NTRU Lattices", of Léo Ducas, Vadim Lyubashevsky and Thomas Prest, available at http://eprint.iacr.org/2014 or http://www.di.ens.fr/~lyubash/ .
+This software is a proof-of-concept implementation of an identity-based encryption scheme over NTRU lattices, described in the paper "Efficient Identity-Based Encryption over NTRU Lattices", of Léo Ducas, Vadim Lyubashevsky and Thomas Prest, available at http://eprint.iacr.org/2014/794 or http://www.di.ens.fr/~lyubash/ .
+
+Warning
+=======
+This code is not to be considered nice, secure or efficient. Its purpose is not to be used for actual encryption, but to provide the research community a tool to verify, analyze and reproduce the statements made in our paper.
 
 How to use?
 ===========
