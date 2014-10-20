@@ -9,7 +9,7 @@ research community a proof-of-concept implementation of the identity-based
 encryption scheme over NTRU lattices, described in the paper
 "Efffficient Identity-Based Encryption over NTRU Lattices", of
 Léo Ducas, Vadim Lyubashevsky and Thomas Prest, available at
-http://eprint.iacr.org/2014/794 or http://www.di.ens.fr/~lyubash/ .
+http://eprint.iacr.org/2014/794 , http://www.di.ens.fr/~lyubash/ and http://www.di.ens.fr/~prest/ .
 
 This software is governed by the CeCILL license under French law and
 abiding by the rules of distribution of free software.  You can  use, 
