@@ -10,16 +10,16 @@ This code is not to be considered nice, secure or efficient. Its purpose is not 
 How to use?
 ===========
 
-Compile the file using a C++ compiler, and linking to the GMP, NTL and quadmath libraries, and then run the executable.
+Compile the file using a C++ compiler, and linking to the GMP and NTL libraries, and then run the executable.
 Example on an Unix machine with gcc:
 ```
-$ g++ -Ofast IBE.cc -o IBE -lntl -lgmp -lquadmath
+$ g++ -Ofast IBE.cc -o IBE -lntl -lgmp
 $ ./IBE
 ```
 
 If GMP, NTL and quadmath are not in a standard directory, you have to indicate where they are upon compilation.
 Example:
 ```
-$ g++ -Ofast -I$HOME/sw/include IBE.cc -o IBE -L$HOME/sw/lib -lntl -lgmp -lquadmath
+$ g++ -Ofast -I$HOME/sw/include IBE.cc -o IBE -L$HOME/sw/lib -lntl -lgmp
 $ ./IBE
 ```
