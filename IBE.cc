@@ -7,9 +7,10 @@ Thomas.Prest@ENS.fr
 This software is a computer program which purpose is to provide to the 
 research community a proof-of-concept implementation of the identity-based
 encryption scheme over NTRU lattices, described in the paper
-"Efffficient Identity-Based Encryption over NTRU Lattices", of
+"Efficient Identity-Based Encryption over NTRU Lattices", of
 Léo Ducas, Vadim Lyubashevsky and Thomas Prest, available at
-http://eprint.iacr.org/2014/794 , http://www.di.ens.fr/~lyubash/ and http://www.di.ens.fr/~prest/ .
+http://eprint.iacr.org/2014/794 , http://www.di.ens.fr/~lyubash/
+and http://www.di.ens.fr/~prest/ .
 
 This software is governed by the CeCILL license under French law and
 abiding by the rules of distribution of free software.  You can  use, 
@@ -42,22 +43,16 @@ knowledge of the CeCILL license and that you accept its terms.
 
 
 
-#include <NTL/ZZ.h>
-#include <NTL/ZZX.h>
+
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <assert.h>
 #include <math.h>
-extern "C" {
-#include <quadmath.h>
 #include <complex.h>
-}
 #include <time.h>
+#include <NTL/ZZ.h>
+#include <NTL/ZZX.h>
 #include <NTL/mat_ZZ.h>
-#include <iomanip>
 #include <gmp.h>
-#include <cfloat>
 
 
 using namespace std;
@@ -65,11 +60,11 @@ using namespace NTL;
 
 #define Nmax 4096
 
-#ifdef  USE_FLOAT128
-    typedef __float128 long_double_t;
-#else
+//#ifdef  USE_FLOAT128
+//    typedef __float128 long_double_t;
+//#else
     typedef long double long_double_t;
-#endif
+//#endif
 
 typedef struct
 {
@@ -81,7 +76,7 @@ typedef struct
 typedef struct
 {
     ZZX PrK[4];
-    double complex PrK_fft[4][Nmax];
+    complex<long_double_t> PrK_fft[4][Nmax];
     long_double_t GS_Norms[Nmax];
     long_double_t sigma;
     long_double_t Lookuptable[Nmax][20];
@@ -91,7 +86,7 @@ typedef struct
 typedef struct
 {
     ZZ_pX h;
-    double complex h_FFT[Nmax];
+    complex<long_double_t> h_FFT[Nmax];
 } MPK_Data;
 
 
@@ -102,9 +97,9 @@ long_double_t Bst[Nmax][Nmax];
 
 
 
-//*************************************
-/*          Seed for the RNG         */
-//*************************************
+//==============================================================================
+//          Seed for the RNG    
+//==============================================================================
 
 #ifdef __i386
 extern __inline__ uint64_t rdtsc(void) {
@@ -121,13 +116,15 @@ extern __inline__ uint64_t rdtsc(void) {
 #endif
 
 
+
 // Useful constants up to ~500 bits
 const long double sigma_1= 0.84932180028801904272150283410288961971514109378435394286159953238339383120795466719298223538163406787061691601172910413284884326532697308797136114023L;//sqrt(1/(2*log(2)))
 const long double log_2 = 0.6931471805599453094172321214581765680755001343602552541206800094933936219696947156058633269964186875420014810205706857336855202357581305570326707516L;
 const long_double_t Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679821480865132823066470938446095505822317253594081L;
 const long_double_t PiPrime = 0.39894228040143267793994605993438186847585863116493465766592582967065792589930183850125233390730693643030255886263518268551099195455583724299621273062L; //1/sqrt(2*Pi)
 const long_double_t LDRMX = ((long_double_t)RAND_MAX );
-
+//complex<long_double_t> I = I(0,1);
+const complex<long_double_t> ii(1, 1);
 
 
 
@@ -206,31 +203,31 @@ ZZX Vec_to_Pol(vec_ZZ& source)
 }
 
 
-void printFFT(double complex const * const f_fft, const unsigned long N)
+void printFFT(complex<long_double_t> const * const f_fft, const unsigned long N)
 {
     unsigned int i;
     cout << "[";
     for(i=0; i<N; i++)
     {
-        cout << creal(f_fft[i]) << "+ I*" << cimag(f_fft[i]) << "	";
+        cout << (f_fft[i]).real() << "+ I*" << (f_fft[i]).imag() << "	";
     }
     cout << "]" << endl;
 }
 
 
-void printFFTnorm(double complex const * const f_fft, const unsigned long N)
+void printFFTnorm(complex<long_double_t> const * const f_fft, const unsigned long N)
 {
     unsigned int i;
     cout << "[";
     for(i=0; i<N; i++)
     {
-        cout << round(creal(f_fft[i])*creal(f_fft[i]) +cimag(f_fft[i])*cimag(f_fft[i])) << "	";
+        cout << round( f_fft[i].real() * f_fft[i].real() + f_fft[i].imag() * f_fft[i].imag() ) << "	";
     }
     cout << "]" << endl;
 }
 
 
-void MyComplexFFT(double complex * const f_fft, double const * const f, const unsigned long N, const double complex w0)
+void MyComplexFFT(complex<long_double_t> * const f_fft, long_double_t const * const f, const unsigned long N, const complex<long_double_t> w0)
 {
     if(N==1)
     {
@@ -240,17 +237,14 @@ void MyComplexFFT(double complex * const f_fft, double const * const f, const un
     {
         if(N==2)
         {
-            //cout << "f[0] = " << f[0] << endl;
-            //cout << "f[1] = " << f[1] << endl;
-            f_fft[0] = f[0] + I*f[1];
-            f_fft[1] = f[0] - I*f[1];
-            //printFFT(f_fft,N);
+            f_fft[0] = f[0] + ii*f[1];
+            f_fft[1] = f[0] - ii*f[1];
         }
         else
         {
             assert(N%2==0);
-            double f0[N/2], f1[N/2];
-            double complex f0_fft[N/2], f1_fft[N/2], wk, w02;
+            long_double_t f0[N/2], f1[N/2];
+            complex<long_double_t> f0_fft[N/2], f1_fft[N/2], wk, w02;
             unsigned int k;
             for(k=0; k<(N/2); k++)
             {
@@ -258,42 +252,36 @@ void MyComplexFFT(double complex * const f_fft, double const * const f, const un
                 f1[k] = f[2*k+1];
             }
 
-            //w0 = cexp(I*Pi/N);
             w02 = w0*w0;
             wk = w0;
             MyComplexFFT(f0_fft, f0, N/2, w02);
-            //printFFT(f0_fft,N/2);
             MyComplexFFT(f1_fft, f1, N/2, w02);
-            //printFFT(f1_fft,N/2);
             for(k=0; k<N; k++)
             {
                 f_fft[k] = f0_fft[k%(N/2)] + wk*f1_fft[k%(N/2)];
                 wk *= w02;
             }
-            //printFFT(f_fft,N);
         }
     }
 }
 
 
-void MyReverseFFT(double complex * const f, double complex const * const f_fft, const unsigned long N, const double complex w0)
+void MyReverseFFT(complex<long_double_t> * const f, complex<long_double_t> const * const f_fft, const unsigned long N, const complex<long_double_t> w0)
 {
-    //cout << "w0 = " << creal(w0) << "+ I*" << cimag(w0) << endl;
     if(N!=2)
     {
         assert(N%2==0);
-        double complex f0[N/2], f1[N/2];
-        double complex f0_fft[N/2], f1_fft[N/2], w02, wk;
+        complex<long_double_t> f0[N/2], f1[N/2];
+        complex<long_double_t> f0_fft[N/2], f1_fft[N/2], w02, wk;
         unsigned int k;
 
-        //w0 = cexp(-I*Pi/N);
         w02 = w0*w0;
         wk = w0;
 
         for(k=0; k<N/2; k++)
         {
-            f0_fft[k] = (f_fft[k] + f_fft[k+(N/2)])/2;
-            f1_fft[k] = wk*(f_fft[k] - f_fft[k+(N/2)])/2;
+            f0_fft[k] = (f_fft[k] + f_fft[k+(N/2)])*0.5l;
+            f1_fft[k] = wk*(f_fft[k] - f_fft[k+(N/2)])*0.5l;
             wk *= w02;
         }
         MyReverseFFT(f0, f0_fft, (N/2), w02);
@@ -307,80 +295,80 @@ void MyReverseFFT(double complex * const f, double complex const * const f_fft, 
     }
     else
     {
-        f[0] = (f_fft[0] + f_fft[1])/2;
-        f[1] = (f_fft[0] - f_fft[1])/(2*I);
+        f[0] = (f_fft[0] + f_fft[1])*0.5l;
+        f[1] = (f_fft[0] - f_fft[1])*(-0.5l*ii);
     }
 }
 
 
-void MyRealReverseFFT(double * const f, double complex const * const f_fft, const unsigned long N, const double complex w0)
+void MyRealReverseFFT(double * const f, complex<long_double_t> const * const f_fft, const unsigned long N, const complex<long_double_t> w0)
 {
-    //cout << "w0 = " << creal(w0) << "+ I*" << cimag(w0) << endl;
-    double complex fprime[Nmax];
+    //cout << "w0 = " << w0.real() << "+ I*" << w0.imag() << endl;
+    complex<long_double_t> fprime[Nmax];
     unsigned int i;
     MyReverseFFT(fprime, f_fft, N, w0);
 
     //printFFT(fprime, N);
     for(i=0; i<N; i++)
     {
-        f[i] = creal(fprime[i]);
+        f[i] = (fprime[i]).real();
     }
 }
 
 
-void MyIntReverseFFT(long int * const f, double complex const * const f_fft, const unsigned long N)
+void MyIntReverseFFT(long int * const f, complex<long_double_t> const * const f_fft, const unsigned long N)
 {
-    const double complex w0 = cexp(-I*Pi/N);
-    double complex fprime[Nmax];
+    const complex<long_double_t> w0 = exp(-ii*(Pi/N));
+    complex<long_double_t> fprime[Nmax];
     unsigned int i;
 
     MyReverseFFT(fprime, f_fft, N, w0);
     //printFFT(fprime, N);
     for(i=0; i<N; i++)
     {
-        f[i] = ((long int) round(creal(fprime[i])) );
+        f[i] = ((long int) round( fprime[i].real() ) );
     }
 }
 
 
-void MyIntFFT(double complex * f_FFT, const long int * const f, const unsigned int N)
+void MyIntFFT(complex<long_double_t> * f_FFT, const long int * const f, const unsigned int N)
 {
-    const double complex w0 = cexp(I*Pi/N);
+    const complex<long_double_t> w0 = exp(ii*(Pi/N));
 
-    double f_double[Nmax];
+    long_double_t f_double[Nmax];
     unsigned int i;
 
     for(i=0; i<N; i++)
     {
-        f_double[i] = ( double ( f[i] ) );
+        f_double[i] = ( long_double_t ( f[i] ) );
     }
 
     MyComplexFFT(f_FFT, f_double, N, w0);
 }
 
 
-void ZZX_To_FFT(double complex * f_FFT, const ZZX f, const unsigned int N)
+void ZZX_To_FFT(complex<long_double_t> * f_FFT, const ZZX f, const unsigned int N)
 {
-    const double complex w0 = cexp(I*Pi/N);
-    double f_double[Nmax];
+    const complex<long_double_t> w0 = exp(ii*(Pi/N));
+    long_double_t f_double[Nmax];
     unsigned int i;
 
     assert(deg(f)==N-1);
     assert(MaxBits(f)<900);
     for(i=0; i<N; i++)
     {
-        f_double[i] = conv<double>(f[i]);
+        f_double[i] = ( long_double_t ( conv<double>(f[i]) ) );
     }
 
     MyComplexFFT(f_FFT, f_double, N, w0);
 }
 
 
-void FFT_To_ZZX(ZZX& f, double complex const * const f_FFT, const unsigned int N)
+void FFT_To_ZZX(ZZX& f, complex<long_double_t> const * const f_FFT, const unsigned int N)
 {
     double f_double[Nmax];
     unsigned int i;
-    const double complex w0 = cexp(-I*Pi/N);
+    const complex<long_double_t> w0 = exp(-ii*(Pi/N));
     MyRealReverseFFT(f_double, f_FFT, N, w0);
 
     f.SetLength(N);
@@ -412,10 +400,10 @@ vec_ZZ RandomVector(const unsigned int N, const ZZ& q)
 //==============================================================================
 
 
-//*****************************************************************************************
-/* Takes in input a random value and samples from distribution D_{\sigma_2}^+,           */  
-/* Samples an element in Z+ with probability proportionnal to 2^{-x^2}                   */
-//*****************************************************************************************
+//==============================================================================
+// Takes in input a random value and samples from distribution D_{\sigma_2}^+,   
+// Samples an element in Z+ with probability proportionnal to 2^{-x^2}       
+//==============================================================================
 unsigned int Sample_0(unsigned long alea)
 {
     if((alea&1UL)==0UL)
@@ -451,10 +439,10 @@ unsigned int Sample_0(unsigned long alea)
 
 
 
-//*****************************************************************************************
-/* Samples from distribution D_{k\sigma_2}^+, ie                                         */  
-/* Samples an element in Z+ with probability proportionnal to 2^{-(x/k)^2}               */
-//*****************************************************************************************
+//==============================================================================
+// Samples from distribution D_{k\sigma_2}^+, ie 
+// Samples an element in Z+ with probability proportionnal to 2^{-(x/k)^2} 
+//==============================================================================
 unsigned int Sample_1(const unsigned int k)
 {
     unsigned int x, y, z;
@@ -463,8 +451,8 @@ unsigned int Sample_1(const unsigned int k)
     x = Sample_0(alea);
     y = rand()%k;
     z = k*x + y;
-    long double w = y*( (z<<1) - y );
-    long double borne =  LDRMX / exp( w*log_2/(k*k) );
+    long_double_t w = y*( (z<<1) - y );
+    long_double_t borne =  LDRMX / exp( w*log_2/(k*k) );
     alea = rand();
     if(alea>borne)
     {
@@ -481,10 +469,10 @@ unsigned int Sample_1(const unsigned int k)
 
 
 
-//*****************************************************************************************
-/* Samples from distribution D_{k\sigma_2}, ie                                           */  
-/* Samples an element in Z with probability proportionnal to 2^{-(x/k)^2}                */
-//*****************************************************************************************
+//==============================================================================
+// Samples from distribution D_{k\sigma_2}, ie                
+// Samples an element in Z with probability proportionnal to 2^{-(x/k)^2} 
+//==============================================================================
 signed int Sample_2(const unsigned int k)
 {
     signed int signe;
@@ -505,22 +493,22 @@ signed int Sample_2(const unsigned int k)
 }
 
 
-//*****************************************************************************************
-/* Samples from distribution D_{sigma}, ie                                               */  
-/* Samples an element in Z with probability proportionnal to e^{-x^2/2*(sigma^2)}        */
-//*****************************************************************************************
+//==============================================================================
+// Samples from distribution D_{sigma}, ie                                       
+// Samples an element in Z with probability proportionnal to e^{-x^2/2*(sigma^2)}
+//==============================================================================
 signed int Sample_3(const long_double_t sigma128)
 {
     signed int x;
     double alea, borne;
 
-    const long double sigma = ((long double) sigma128);
-    const unsigned long k = ( (unsigned long) ceil( (long double) sigma/sigma_1 ) );
+    const long_double_t sigma = sigma128;
+    const unsigned long k = ( (unsigned long) ceil( (long_double_t) sigma/sigma_1 ) );
     while(1)
 
     {
         x = Sample_2(k);
-        alea = ((long double)rand()) / LDRMX;
+        alea = ((long_double_t)rand()) / LDRMX;
         borne = exp( -x*x*( 1/(2*sigma*sigma) - 1/(2*k*k*sigma_1*sigma_1) )   );
         //cout << borne << endl;
         assert(borne<=1);
@@ -533,20 +521,20 @@ signed int Sample_3(const long_double_t sigma128)
 }
 
 
-//*****************************************************************************************
-/* Samples from distribution D_{c,sigma}, ie                                             */  
-/* Samples an element in Z with probability proportionnal to e^{-(c-x)^2/2*(sigma^2)}    */
-//*****************************************************************************************
+//==============================================================================
+// Samples from distribution D_{c,sigma}, ie                                              
+// Samples an element in Z with probability proportionnal to e^{-(c-x)^2/2*(sigma^2)}    
+//==============================================================================
 signed int Sample_4(long_double_t c, long_double_t sigma)
 {
-    double alea, borne;
+    long_double_t alea, borne;
     signed int x;
     unsigned int coin;
 
-    const signed int intc = ((signed int)floor((long double)c));
-    const double fracc = c-intc;
+    const signed int intc = ( (signed int) floor(c) );
+    const long_double_t fracc = c-intc;
     coin = rand();
-    const double denom = 1/(2*sigma*sigma);
+    const long_double_t denom = 1/(2*sigma*sigma);
 
     while(1)
     {
@@ -557,10 +545,9 @@ signed int Sample_4(long_double_t c, long_double_t sigma)
         borne = exp(-(x-fracc)*(x-fracc)*denom)/ ( exp(-x*x*denom) + exp(-(x-1)*(x-1)*denom) );
 
         assert(borne<1);
-        alea = ((double)rand()) / LDRMX;
+        alea = ( (long_double_t)rand() ) / LDRMX;
         if(alea<borne)
         {
-            //cout << (x+intc) << endl;
             return (x+intc);
         }
     }
@@ -576,9 +563,9 @@ signed int Sample_4(long_double_t c, long_double_t sigma)
 //==============================================================================
 
 
-/*****************************************************************************************
-Computes the squared norm of a polynomial f   
-*****************************************************************************************/
+//==============================================================================
+//Computes the squared norm of a polynomial f   
+//==============================================================================
 ZZ SquaredNorm(const ZZX& f, const unsigned int degree)
 {
     unsigned int i;
@@ -592,9 +579,9 @@ ZZ SquaredNorm(const ZZX& f, const unsigned int degree)
 
 
 
-/*****************************************************************************************
-Generates a random polynomial of fixed degree
-*****************************************************************************************/
+//==============================================================================
+//Generates a random polynomial of fixed degree
+//==============================================================================
 ZZX RandomPoly(const unsigned int degree)
 {
     unsigned int i;
@@ -608,9 +595,9 @@ ZZX RandomPoly(const unsigned int degree)
 }
 
 
-/*****************************************************************************************
-Generates a random polynomial of fixed degree and "approximately" fixed squared norm
-*****************************************************************************************/
+//==============================================================================
+//Generates a random polynomial of fixed degree and "approximately" fixed squared norm
+//==============================================================================
 ZZX RandomPolyFixedSqNorm(const ZZ& SqNorm, const unsigned int degree)
 {
     unsigned int i;
@@ -646,10 +633,10 @@ ZZX FastMod(const ZZX& f, const unsigned int N)
 }
 
 
-/****************************************************************************************
-Verifies that for a parameter N, polynomials f, g are a valid semi-basis for building a NTRU lattice.
-If GGCD!=1, then (f,g) isn't a valid pair
-****************************************************************************************/
+//==============================================================================
+//Verifies that for a parameter N, polynomials f, g are a valid semi-basis for building a NTRU lattice.
+//If GGCD!=1, then (f,g) isn't a valid pair
+//==============================================================================
 void ValidPair(ZZ& PGCD, ZZ& Alpha, ZZ& Beta, ZZX& rho_f, ZZX& rho_g, const ZZX& f, const ZZX& g, const unsigned int N, const ZZ& q)
 {
     ZZX phi, Res_fx, Res_gx, iphi;
@@ -670,11 +657,11 @@ void ValidPair(ZZ& PGCD, ZZ& Alpha, ZZ& Beta, ZZX& rho_f, ZZX& rho_g, const ZZX&
 }
 
 
-/****************************************************************************************
-Computes f(1/x) mod (x^N + 1)
-If f = a0 + a1*x + ... + a_{N-1}*x^{N-1}, then
-Reverse(f) = a0 + a_{N-1}*x + ... + a1*x^{N-1}
-****************************************************************************************/
+//==============================================================================
+//Computes f(1/x) mod (x^N + 1)
+//If f = a0 + a1*x + ... + a_{N-1}*x^{N-1}, then
+//Reverse(f) = a0 + a_{N-1}*x + ... + a1*x^{N-1}
+//==============================================================================
 ZZX Reverse(const ZZX& f, const unsigned int N)
 {
     assert(deg(f)>=0);
@@ -696,9 +683,9 @@ ZZX Reverse(const ZZX& f, const unsigned int N)
 
 
 
-/****************************************************************************************
-Computes the polynomial k such that (F,G) <-- (F,G) - k*(f,g) minimizes the size of (F,G)
-****************************************************************************************/
+//==============================================================================
+//Computes the polynomial k such that (F,G) <-- (F,G) - k*(f,g) minimizes the size of (F,G)
+//==============================================================================
 ZZX ReductionCoefficient(const ZZX& f, const ZZX& g, const ZZX& F, const ZZX& G, const unsigned int N, unsigned int & mb)
 {
     unsigned int i;
@@ -728,15 +715,15 @@ ZZX ReductionCoefficient(const ZZX& f, const ZZX& g, const ZZX& F, const ZZX& G,
 }
 
 
-/****************************************************************************************
-Computes the polynomial k such that (F,G) <-- (F,G) - k*(f,g) minimizes the size of (F,G)
-****************************************************************************************/
+//==============================================================================
+//Computes the polynomial k such that (F,G) <-- (F,G) - k*(f,g) minimizes the size of (F,G)
+//==============================================================================
 ZZX FastReductionCoefficient(const ZZX& f, const ZZX& g, const ZZX& F, const ZZX& G, const unsigned int N)
 {
     //cout << "Fast Reduc" << endl;
     unsigned int i;
     ZZX k;
-    double complex f_FFT[Nmax], g_FFT[Nmax], F_FFT[Nmax], G_FFT[Nmax], num_FFT[Nmax], den_FFT[Nmax], k_FFT[Nmax];
+    complex<long_double_t> f_FFT[Nmax], g_FFT[Nmax], F_FFT[Nmax], G_FFT[Nmax], num_FFT[Nmax], den_FFT[Nmax], k_FFT[Nmax];
 
     assert(MaxBits(f)<900);
     ZZX_To_FFT(f_FFT, f, N);
@@ -763,9 +750,9 @@ ZZX FastReductionCoefficient(const ZZX& f, const ZZX& g, const ZZX& F, const ZZX
 
 
 
-/****************************************************************************************
-Returns the anticircular matrix associated to integral polynomial f and integer N
-****************************************************************************************/
+//==============================================================================
+//Returns the anticircular matrix associated to integral polynomial f and integer N
+//==============================================================================
 mat_ZZ AnticircularMatrix(const ZZX& f, const unsigned int N)
 {
     unsigned int i,j;
@@ -803,12 +790,12 @@ mat_ZZ AnticircularMatrix(const ZZX& f, const unsigned int N)
 
 
 
-/****************************************************************************************
-Generates a basis from the double pair (f,g), (F,G) and N
-This basis has the form :
-    |f g|
-M = |F G|
-****************************************************************************************/
+//==============================================================================
+//Generates a basis from the double pair (f,g), (F,G) and N
+//This basis has the form :
+//    |f g|
+//M = |F G|
+//==============================================================================
 mat_ZZ BasisFromPolynomials(const ZZX& f, const ZZX& g, const ZZX& F, const ZZX& G, const unsigned int N)
 {
     unsigned int i,j;
@@ -843,9 +830,9 @@ mat_ZZ BasisFromPolynomials(const ZZX& f, const ZZX& g, const ZZX& F, const ZZX&
 
 
 
-/****************************************************************************************
-Computes the inverse of f (mod phi) (mod q)
-****************************************************************************************/
+//==============================================================================
+//Computes the inverse of f (mod phi) (mod q)
+//==============================================================================
 ZZ_pX inverse(const ZZX& f, const ZZX& phi, const ZZ& q)
 {
     ZZ_p::init(q);
@@ -860,9 +847,9 @@ ZZ_pX inverse(const ZZX& f, const ZZX& phi, const ZZ& q)
 }
 
 
-/****************************************************************************************
-Computes h = g/f (mod phi) (mod q)
-****************************************************************************************/
+//==============================================================================
+//Computes h = g/f (mod phi) (mod q)
+//==============================================================================
 ZZ_pX h_from_fg(const ZZX& f, const ZZX& g, const ZZX& phi, const ZZ& q)
 {
     ZZ_pX f_1, g0, h0, phi0;
@@ -875,9 +862,9 @@ ZZ_pX h_from_fg(const ZZX& f, const ZZX& g, const ZZX& phi, const ZZ& q)
 
 
 
-/****************************************************************************************
-Computes the Gram-Schmidt norm of the basis B generated from f,g
-****************************************************************************************/
+//==============================================================================
+//Computes the Gram-Schmidt norm of the basis B generated from f,g
+//==============================================================================
 void GS_Norm(ZZX fx, ZZX gx, RingData * RD, int& flag)
 {
     unsigned int i;
@@ -885,7 +872,7 @@ void GS_Norm(ZZX fx, ZZX gx, RingData * RD, int& flag)
     const unsigned q0 = RD->q0;
 
     double acc, acc3, Fred[Nmax], Gred[Nmax];
-    double complex f[Nmax], g[Nmax], F[Nmax], G[Nmax];
+    complex<long_double_t> f[Nmax], g[Nmax], F[Nmax], G[Nmax];
 
 
     acc = 0;
@@ -899,7 +886,7 @@ void GS_Norm(ZZX fx, ZZX gx, RingData * RD, int& flag)
     ZZX_To_FFT(f, fx, N);
     ZZX_To_FFT(g, gx, N);
 
-    double complex w0 = cexp(-I*Pi/N);
+    complex<long_double_t> w0 = exp(-ii*(Pi/N));
 
     for(i=0; i<N; i++)
     {
@@ -915,7 +902,7 @@ void GS_Norm(ZZX fx, ZZX gx, RingData * RD, int& flag)
         acc3 += Fred[i]*Fred[i] + Gred[i]*Gred[i];
     }
     acc3 = q0*sqrt(acc3);
-    //cout << acc << "		"/* << acc2 << "		"*/ << acc3 << endl;
+    //cout << acc << "		" << acc3 << endl;
     if(acc3<acc)
     {
         //cout << "match" << endl;
@@ -925,10 +912,10 @@ void GS_Norm(ZZX fx, ZZX gx, RingData * RD, int& flag)
 
 
 
-/****************************************************************************************
-Generates a secret basis (f,g),(F,G) from the parameters N,q,Norme
-This bases generates a NTRU lattice
-****************************************************************************************/
+//==============================================================================
+//Generates a secret basis (f,g),(F,G) from the parameters N,q,Norme
+//This bases generates a NTRU lattice
+//==============================================================================
 void GenerateBasis(ZZX& f, ZZX& g, ZZX& F, ZZX& G, const ZZ& Norme, RingData * RD)
 {
     int i, N;
@@ -988,11 +975,11 @@ void GenerateBasis(ZZX& f, ZZX& g, ZZX& F, ZZX& G, const ZZ& Norme, RingData * R
 
 
 
-/****************************************************************************************
-Generates from parameters N and q :
- - a public key : polynomial h
- - a private key : polynomials f,g,F,G
-****************************************************************************************/
+//==============================================================================
+//Generates from parameters N and q :
+// - a public key : polynomial h
+// - a private key : polynomials f,g,F,G
+//==============================================================================
 void Keygen(ZZ_pX& PublicKey, ZZX* PrivateKey, RingData * RD)
 {
     const unsigned long q0  = RD->q0;
@@ -1019,9 +1006,9 @@ void Keygen(ZZ_pX& PublicKey, ZZX* PrivateKey, RingData * RD)
     PublicKey = h_from_fg(f, g, phi, q);
 }
 
-/****************************************************************************************
-Computes the private basis B from private key PrivateKey and parameter N
-****************************************************************************************/
+//==============================================================================
+//Computes the private basis B from private key PrivateKey and parameter N
+//==============================================================================
 void CompletePrivateKey(mat_ZZ& B, const ZZX * const PrivateKey, const unsigned int N)
 {
     ZZX f,g,F,G;
@@ -1101,7 +1088,7 @@ void double_MGS(long_double_t Bstar[Nmax][Nmax], const long_double_t B[Nmax][Nma
 
 void fast_MGS(long_double_t Bst[Nmax][Nmax], const long_double_t B[Nmax][Nmax], const unsigned int N, const unsigned long q0)
 {
-    long_double_t v[Nmax], v1[Nmax], C[Nmax], D[Nmax], CD[Nmax], C_k, D_k, C_ko, D_ko, aux;
+    long_double_t v[Nmax], v1[Nmax], C[Nmax], D[Nmax], C_k, D_k, C_ko, D_ko, aux;
     unsigned int j, k;
 
     cout << endl;
@@ -1126,19 +1113,14 @@ void fast_MGS(long_double_t Bst[Nmax][Nmax], const long_double_t B[Nmax][Nmax], 
     C[0] = C_k;
     D_k = DotProduct(v, v, 2*N);
     D[0] = D_k;
-    CD[0] = C[0]/D[0];
+    //CD[0] = C[0]/D[0];
 
 
     //Reducing b_2 to b_N and updating v at the same time
-    //cout << "DOUBLE VERSION" << endl;
     for(k=1; k<N; k++)
     {
-        //printdoubletab(2*N, v);
         //b~k <-- r(b~_{k-1}) - <b~_{k-1},b_N>/<v_{k-1},b_N> r(v)
         aux = C_k/D_k;
-        //cout << aux << endl;
-        //printf ("C[%d]= %f\n", (k-1), C[k-1]);
-        //printf ("C[%d]/D[%d]= %f\n", (k-1), (k-1), aux);
         Bst[k][0] = -Bst[k-1][N-1] + aux*v[N-1];
         Bst[k][N] = -Bst[k-1][2*N-1] + aux*v[2*N-1];
         for(j=1; j<N; j++)
@@ -1146,8 +1128,6 @@ void fast_MGS(long_double_t Bst[Nmax][Nmax], const long_double_t B[Nmax][Nmax], 
             Bst[k][j] = Bst[k-1][j-1] - aux*v[j-1];
             Bst[k][j+N] = Bst[k-1][j+N-1] - aux*v[j+N-1];
         }
-        //SquareNorm[k] = SquareNorm[k-1] - aux*aux*sqnorm_v;
-
 
         //v <-- v - Proj(v, b~_{k-1} )
         for(j=0; j<2*N; j++)
@@ -1163,7 +1143,7 @@ void fast_MGS(long_double_t Bst[Nmax][Nmax], const long_double_t B[Nmax][Nmax], 
         C[k] = C_k;
         D_k = D_ko - C_ko*C_ko/D_ko;
         D[k] = D_k;
-        CD[k] = C[k]/D[k];
+        //CD[k] = C[k]/D[k];
         //printf ("D[%d]= %f\n", k, D[k]);
     }
 
@@ -1191,7 +1171,7 @@ void fast_MGS(long_double_t Bst[Nmax][Nmax], const long_double_t B[Nmax][Nmax], 
     C[N] = C_k;
     D_k = DotProduct(Bst[N], Bst[N], 2*N);
     D[N] = D_k;
-    CD[N] = C[N]/D[N];
+    //CD[N] = C[N]/D[N];
 
 
     //Reducing b_2 to b_N and updating v at the same time
@@ -1223,7 +1203,7 @@ void fast_MGS(long_double_t Bst[Nmax][Nmax], const long_double_t B[Nmax][Nmax], 
         C[k] = C_k;
         D_k = D_ko - C_ko*C_ko/D_ko;
         D[k] = D_k;
-        CD[k] = C[k]/D[k];
+        //CD[k] = C[k]/D[k];
     }
 }
 
@@ -1312,7 +1292,7 @@ void CompleteMSK(MSK_Data& MSKD, ZZX * MSK, RingData * RD)
 
     for(i=0; i<2*N; i++)
     {
-        MSKD.GS_Norms[i] = sqrtq( DotProduct(Bstar[i], Bstar[i], 2*N) );
+        MSKD.GS_Norms[i] = sqrt( DotProduct(Bstar[i], Bstar[i], 2*N) );
     }
 
     MSKD.sigma = 2*MSKD.GS_Norms[0];
@@ -1409,7 +1389,7 @@ void IBE_Encrypt(long C[2][Nmax], const long m[Nmax], const long id0[Nmax], cons
 
     unsigned long i;
     long r[Nmax], e1[Nmax], e2[Nmax];
-    double complex r_FFT[Nmax], t_FFT[Nmax], aux1_FFT[Nmax], aux2_FFT[Nmax];
+    complex<long_double_t> r_FFT[Nmax], t_FFT[Nmax], aux1_FFT[Nmax], aux2_FFT[Nmax];
     unsigned long N, q0;
 
     q0 = RD->q0;
@@ -1446,11 +1426,11 @@ void IBE_Encrypt(long C[2][Nmax], const long m[Nmax], const long id0[Nmax], cons
 }
 
 
-void IBE_Decrypt(long w0[Nmax], const long C[2][Nmax], const double complex * const SKid_FFT, const RingData * const RD)
+void IBE_Decrypt(long w0[Nmax], const long C[2][Nmax], const complex<long_double_t> * const SKid_FFT, const RingData * const RD)
 {
     unsigned int i;
     unsigned long N, q0;
-    double complex c0_FFT[Nmax], aux_FFT[Nmax];
+    complex<long_double_t> c0_FFT[Nmax], aux_FFT[Nmax];
 
     N = RD->N;
     q0 = RD->q0;
@@ -1520,7 +1500,7 @@ void Encrypt_Bench(const unsigned int nb_cryp, MPK_Data * MPKD, MSK_Data * MSKD,
     unsigned int i,j;
     vec_ZZ id;
     ZZX SK_id[2], w;
-    double complex SKid_FFT[Nmax];
+    complex<long_double_t> SKid_FFT[Nmax];
     long int message[Nmax], decrypted[Nmax];
     long int identity[Nmax], Ciphertext[2][Nmax];
 
@@ -1596,7 +1576,7 @@ void Encrypt_Test(const unsigned int nb_cryp, MPK_Data * MPKD, MSK_Data * MSKD, 
     unsigned int i, j, rep;
     vec_ZZ id;
     ZZX SK_id[2], m, w;
-    double complex SKid_FFT[Nmax];
+    complex<long_double_t> SKid_FFT[Nmax];
     long int id0[Nmax], Ciphertext[2][Nmax];
     long int message[Nmax], decrypted[Nmax];
 
@@ -1651,6 +1631,7 @@ void Encrypt_Test(const unsigned int nb_cryp, MPK_Data * MPKD, MSK_Data * MSKD, 
 
 
 
+
 //==============================================================================
 //==============================================================================
 //                                  MAIN
@@ -1672,7 +1653,7 @@ int main(int argc, char* argv[])
 
     const unsigned int logN = 8;
     unsigned long int N;
-    unsigned long q0;
+    unsigned long q0, k0, l0;
     ZZ q;
     ZZX phi, MSK[4];
     ZZ_pX phiq, MPK;
@@ -1743,9 +1724,9 @@ int main(int argc, char* argv[])
 
 
 
-    /********************************************************/
+    //==============================================================================
     //Key extraction bench and encryption/decryption bench
-    /********************************************************/
+    //==============================================================================
     const unsigned int nb_extrb = 100;
     const unsigned int nb_crypb = 1000;
 
@@ -1759,9 +1740,9 @@ int main(int argc, char* argv[])
 
 
 
-    /********************************************************/
+    ///==============================================================================
     //Key extraction test and encryption/decryption test
-    /********************************************************/
+    //==============================================================================
     const unsigned int nb_extrt = 100;
     const unsigned int nb_crypt = 100;
 
