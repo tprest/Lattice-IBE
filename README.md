@@ -23,3 +23,7 @@ Example:
 $ g++ -Ofast -I$HOME/sw/include IBE.cc -o IBE -L$HOME/sw/lib -lntl -lgmp
 $ ./IBE
 ```
+
+A note on efficiency
+====================
+Since the publication of "Efficient Identity-Based Encryption over NTRU Lattices", this code has been updated several times, so do the timings claimed. Currently, the timings for encryption/decryption are ~10 times faster than what was claimed in "Efficient Identity-Based Encryption over NTRU Lattices".
