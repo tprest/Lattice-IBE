@@ -20,7 +20,7 @@ $ ./IBE
 If GMP, NTL and quadmath are not in a standard directory, you have to indicate where they are upon compilation.
 Example:
 ```
-$ g++ -Ofast -isystem $HOME/sw/include IBE.cc -o IBE -std=c++11 -L$HOME/sw/lib -lntl -lgmp
+$ g++ -Ofast IBE.cc -o IBE -std=c++11 -isystem $HOME/sw/include -L$HOME/sw/lib -lntl -lgmp
 $ ./IBE
 ```
 
