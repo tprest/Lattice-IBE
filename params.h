@@ -19,7 +19,7 @@ using std::complex;
 // q0 is the modulus w.r.t. whom the integers are reduced. We suggest to take q0 prime
 //=====================================================================================
 #define N0 512
-#define q0 (1<<20)
+#define q0 (1<<30)
 //======================================================================================
 
 
