@@ -18,7 +18,7 @@ $ make
 $ ./IBE
 ```
 
-If GMP and NTL are not in a standard directory, you have to modify the Makefile to indicate where they are.
+If GMP and NTL are not in a standard directory, you have to modify the CCFLAGS and LDFLAGS in the Makefile to indicate where they are.
 
 
 A note on efficiency
